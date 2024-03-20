@@ -1,40 +1,32 @@
 const express = require("express");
-const session = require("express-session");
-//File Storage: npm i session-file-store
-const FileStore = require("session-file-store");
-//No se olviden de inicializarlo!
-const fileStore = FileStore(session);
-const app = express();
-const PUERTO = 8080;
 const cookieParser = require("cookie-parser");
-//Tenemos que instalar MongoStore: npm i connect-mongo
+const session = require("express-session");
 const MongoStore = require("connect-mongo");
+const exphbs = require("express-handlebars");
 const userRouter = require("./routes/user.router.js");
 const sessionRouter = require("./routes/sessions.router.js");
-require("../src/database.js");
+const viewsRouter = require("./routes/views.router.js");
+const initializePassport = require("./config/passport.config.js");
+const passport = require("passport");
+const app = express();
+const PUERTO = 8080;
+require("./database.js");
+
+//Express-Handlebars
+app.engine("handlebars", exphbs.engine());
+app.set("view engine", "handlebars");
+app.set("views", "./src/views");
 
 //Middleware
+app.use(express.static("./src/public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(
   session({
-    //1) Memory Storage:
-
-    secret: "secretcoder",
-    //Es el valor para firmar la cookie.
+    secret: "secretCoder",
     resave: true,
-    //Esta config me permite mantener la sesión activa frente a la inactividad del usuario.
     saveUninitialized: true,
-    //Me permite guardar cualquier sesión aun cuando el objeto de sesión no tenga nada para contener.
-
-    //2)File Storage:
-    //store: new fileStore({path:"./src/sessions", ttl:5, retries: 1})
-    //path: ruta donde se va a guardar el archivin de la session.
-    //ttl: time to live! (en segundos)
-    //retries: cantidad de veces que el servidor tratara de leer el archivo.
-
-    //3) Utilizando Mongo Storage:
     store: MongoStore.create({
       mongoUrl:
         "mongodb+srv://coderhouse50045:coderhouse@cluster0.fpmis3v.mongodb.net/ecommerce?retryWrites=true&w=majority&appName=Cluster0",
@@ -42,42 +34,17 @@ app.use(
     }),
   })
 );
+//////////////////////////////////////////////////////
+// Cambios passport:
+initializePassport();
+app.use(passport.initialize());
+app.use(passport.session());
+/////////////////////////////////////////////////////////
 
 app.use("/api/users", userRouter);
 app.use("/api/sessions", sessionRouter);
-
-//Repasito de cukis
-app.get("/crearcuki", (req, res) => {
-  res.cookie("cuki", "esto es una cukiii").send("Cuki creada");
-});
-
-//Borramos cuki
-app.get("/borrarcuki", (req, res) => {
-  res.clearCookie("cuki").send("Cuki borrada!");
-});
-
-//Recordemos: una sesión es un vinculo que se genera entre el cliente y el servidor, la data se guarda en el servidor pero el cliente almacena el sessionId.
-
-//Login de usuario con Session:
-
-app.get("/login", (req, res) => {
-  let usuario = req.query.usuario;
-
-  req.session.usuario = usuario;
-  res.send("Guardamos el usuario por medio de query");
-});
-
-//Verificamos el usuario:
-
-app.get("/usuario", (req, res) => {
-  if (req.session.usuario) {
-    return res.send(`El usuario registrado es el siguiente: 
-        ${req.session.usuario}`);
-  }
-
-  res.send("No tenemos un usuario registrado, vamos a morir!");
-});
+app.use("/", viewsRouter);
 
 app.listen(PUERTO, () => {
-  console.log(`Escuchando en el puerto ${PUERTO}`);
+  console.log(`Escuchando en el puerto: ${PUERTO}`);
 });
