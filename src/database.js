@@ -1,8 +1,11 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 mongoose
-  .connect(
-    "mongodb+srv://coderhouse50045:coderhouse@cluster0.fpmis3v.mongodb.net/ecommerce?retryWrites=true&w=majority&appName=Cluster0"
-  )
-  .then(() => console.log("Conexion exitosa"))
-  .catch(() => console.log("Vamos a morir, siguen los errores"));
+  .connect("")
+  .then(() => console.log("Conectado a MongoDB"))
+  .catch((error) =>
+    console.log(
+      "Tenemos un error, vamos a morir, todo es bronca y dolor",
+      error
+    )
+  );
