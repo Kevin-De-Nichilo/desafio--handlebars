@@ -1,11 +1,26 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
+const configObject = require("./config/config.js");
+const { mongo_url } = configObject;
 
-mongoose
-  .connect("")
-  .then(() => console.log("Conectado a MongoDB"))
-  .catch((error) =>
-    console.log(
-      "Tenemos un error, vamos a morir, todo es bronca y dolor",
-      error
-    )
-  );
+//Patron de diseño Singleton
+
+class BaseDatos {
+  static #instancia;
+
+  constructor() {
+    mongoose.connect(mongo_url);
+  }
+
+  static getInstancia() {
+    if (this.#instancia) {
+      console.log("Conexión previa");
+      return this.#instancia;
+    }
+
+    this.#instancia = new BaseDatos();
+    console.log("Conexión exitosa");
+    return this.#instancia;
+  }
+}
+
+module.exports = BaseDatos.getInstancia();
