@@ -1,31 +1,50 @@
-/** CLASE 27 - ARQUITECTURA DEL SERVIDOR: DISEÑO **/
-
-//Temas de hoy:
-
-//1) Punto de partida al desarrollar un servidor.
-//2) Patrones de diseño.
-//3) Patron Repository. (tema de la clase que viene).
-//4) Singleton para nuestra conexión con MongoDB.
-//5) Comunicación ente el front y el backend.
-
-/////////////////////////////////////////////////////////////////////////
-
 const express = require("express");
 const app = express();
+const exphbs = require("express-handlebars");
+const cookieParser = require("cookie-parser");
+const passport = require("passport");
+const initializePassport = require("./config/passport.config.js");
+const cors = require("cors");
+const path = require("path");
 const PUERTO = 8080;
 require("./database.js");
-const productosRouter = require("./routes/producto.router.js");
-const cors = require("cors");
+
+const productsRouter = require("./routes/products.router.js");
+const cartsRouter = require("./routes/carts.router.js");
+const viewsRouter = require("./routes/views.router.js");
+const userRouter = require("./routes/user.router.js");
 
 //Middleware
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static("./src/public"));
+app.use(express.json());
+//app.use(express.static("./src/public"));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 
-//Rutas
-app.use("/productos", productosRouter);
+//Passport
+app.use(passport.initialize());
+initializePassport();
+app.use(cookieParser());
 
-app.listen(PUERTO, () => {
-  console.log("Escuchando el puerto 8080");
+//AuthMiddleware
+const authMiddleware = require("./middleware/authmiddleware.js");
+app.use(authMiddleware);
+
+//Handlebars
+app.engine("handlebars", exphbs.engine());
+app.set("view engine", "handlebars");
+app.set("views", "./src/views");
+
+//Rutas:
+app.use("/api/products", productsRouter);
+app.use("/api/carts", cartsRouter);
+app.use("/api/users", userRouter);
+app.use("/", viewsRouter);
+
+const httpServer = app.listen(PUERTO, () => {
+  console.log(`Servidor escuchando en el puerto ${PUERTO}`);
 });
+
+///Websockets:
+const SocketManager = require("./sockets/socketmanager.js");
+new SocketManager(httpServer);
